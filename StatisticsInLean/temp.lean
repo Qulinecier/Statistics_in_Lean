@@ -7,6 +7,11 @@ def MaximumLikelihoodEstimator.{u, v} {α : Type u} {ProbFunSet : Set (PMF α)} 
     (P : β → ↑ProbFunSet) (Xset : Finset α):=
   {θ_max : β // Likelihood P θ_max Xset = sSup (Set.range (fun θ => Likelihood P θ Xset))}
 
+def TendstoInProbability.{u_1} {Ω : Type u_1} [MeasurableSpace Ω] {ι : Type*}
+    {X : ι → (Ω → ℝ)} {P : MeasureTheory.ProbabilityMeasure Ω} (l : Filter ι)
+    (X_lim : Ω → ℝ):=
+  MeasureTheory.TendstoInMeasure (MeasureTheory.ProbabilityMeasure.toMeasure P) X l X_lim
+
 /-
 variable {α : Type u} {ProbFunSet: Set (PMF α)} {β : Type v} (P: β → ProbFunSet) (x : α)
 
