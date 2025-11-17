@@ -14,5 +14,10 @@ maxSynthPendingDepth = 3
 name = "mathlib"
 scope = "leanprover-community"
 
+[[require]]
+name = "CLT"
+git = "https://github.com/Qulinecier/CLT.git"
+rev = "master"
+
 [[lean_lib]]
 name = "StatisticsInLean"
