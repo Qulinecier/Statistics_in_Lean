@@ -241,48 +241,36 @@ lemma pmf_subtype_coe (p: PMF ℝ) (x : ℝ):
 
 noncomputable instance: CommGroupWithZero ℝ := by exact Field.toSemifield.toCommGroupWithZero
 
-example {s : Set ℝ} {hs1 : s ⊆ (Set.Iio 0)} {hs2 : Convex ℝ s}
-    {hs3 : ContinuousOn Real.log s} {hs4 : IsClosed s}
-    {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
-    (X : ℕ → ℝ → ℝ) (hrv : ∀ (i : ℕ), Measurable (X i))
-    {hs5 : ∀ᵐ (x : ℝ) ∂((f θ₀).1).toMeasure,
-    ((f θ).1.1 (X 0 x)).toReal / ((f θ₀).1.1 (X 0 x)).toReal ∈ s}
-    (hindep : iIndepFun X ((f θ₀).1.toMeasure))
-    (hident : ∀ i, IdentDistrib (X i) (X 0) ((f θ₀).1.toMeasure) ((f θ₀).1.toMeasure))
+lemma integral_sum_ratio_eq_one {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
+    (X : ℕ → ℝ → ℝ)
     (hX : ∀ (n : ℕ), ∀ (ω : ℝ), ∀ (i : Fin n), X i ω ∈ (f θ₀).1.support)
     (hid: ∀ (n : ℕ), ∀ (ω : ℝ), X n ω = ω)
-    (h0 : ∀ (θ₁ θ₂ : ℝ), (f θ₁).1.support = (f θ₂).1.support)
-    (hint1 : Integrable (log_sum_ratio_rv f X θ₀ θ 0) (f θ₀).1.toMeasure)
     (hint2 : Integrable (fun x ↦ ((f θ).1.1 (X 0 x)).toReal /
-    ((f θ₀).1.1 (X 0 x)).toReal) ((f θ₀).1).toMeasure)
-    (hMeasurable : ∀ (θ : ℝ), Measurable (f θ).1.1)
-    (hne_const : ¬ ((fun x ↦ ((f θ).1.1 (X 0 x)).toReal / ((f θ₀).1.1 (X 0 x)).toReal)
-    =ᶠ[ae ((f θ₀).1).toMeasure] Function.const ℝ (⨍ (x : ℝ), ((f θ).1.1 (X 0 x)).toReal /
-    ((f θ₀).1.1 (X 0 x)).toReal ∂((f θ₀).1).toMeasure))):
+    ((f θ₀).1.1 (X 0 x)).toReal) ((f θ₀).1).toMeasure):
     ∫ (x : ℝ), ((f θ).1.1 (X 0 x)).toReal / ((f θ₀).1.1 (X 0 x)).toReal ∂((f θ₀).1).toMeasure
     = 1 :=by
-  have hsubtype: ∀ (a : ℝ), (f θ₀).1.1 a = (f θ₀).1 a:= fun a => rfl
+  have hsubtype₀: ∀ (a : ℝ), (f θ₀).1.1 a = (f θ₀).1 a:= fun a => rfl
+  have hsubtype: ∀ (a : ℝ), (f θ).1.1 a = (f θ).1 a:= fun a => rfl
   rw [PMF.integral_eq_tsum]
   · simp_rw [hid 0]
     simp only [smul_eq_mul]
-    simp_rw [hsubtype]
-
+    simp_rw [hsubtype₀]
     have hdiv_cancel: ∀ (a : ℝ), ((f θ₀).1 a).toReal *
       (((f θ).1.1 a).toReal / ((f θ₀).1 a).toReal) = ((f θ).1.1 a).toReal :=by
       intro a
       rw [mul_div_cancel₀]
-      rw [← hsubtype, ← hid 0 a]
+      rw [← hsubtype₀, ← hid 0 a]
       have hX0_coe: X 0 a = X (0: Fin 1) a:= by exact rfl
       specialize hX 1 a 0
       rw [hX0_coe, ENNReal.toReal_ne_zero]
       refine ⟨(PMF.mem_support_iff ((f θ₀).1) (X 0 a)).mp hX,
         ne_of_lt (lt_of_le_of_lt (PMF.coe_le_one (f θ₀).1 (X 0 a)) ENNReal.one_lt_top)⟩
     simp_rw [hdiv_cancel]
-    rw [← ENNReal.toReal_one]
-
-    rw [← PMF.tsum_coe (f θ).1]
-
-
+    rw [← ENNReal.toReal_one, ← ENNReal.tsum_toReal_eq]
+    · simp_rw [hsubtype]
+      rw [← PMF.tsum_coe (f θ).1]
+    · intro a
+      exact ne_of_lt (lt_of_le_of_lt (PMF.coe_le_one (f θ).1 a) ENNReal.one_lt_top)
 
   · exact hint2
 
@@ -337,6 +325,12 @@ theorem theorem32 {s : Set ℝ} {hs1 : s ⊆ (Set.Iio 0)} {hs2 : Convex ℝ s}
           simp only [measure_univ, inv_one, one_smul] at hJensen
           generalize hμ: ∫ (x : ℝ), Real.log (((f θ).1.1 (X 0 x)).toReal /
             ((f θ₀).1.1 (X 0 x)).toReal) ∂((f θ₀).1).toMeasure = μ at *
+          rw [integral_sum_ratio_eq_one θ f θ₀ X hX hid hint2] at hJensen
+          simp only [Real.log_one] at hJensen
+          sorry
+
+
+
 
 
 
