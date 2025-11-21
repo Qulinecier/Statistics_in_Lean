@@ -348,5 +348,3 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
                   exact Measurable.comp (Measurable_log_ratio θ f θ₀ hMeasurable) (hrv x)
                 · exact measurable_const
               · exact measurable_const
-
-#lint
