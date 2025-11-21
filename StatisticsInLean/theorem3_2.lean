@@ -1,5 +1,6 @@
 import Mathlib
 
+
 universe u v u_1
 
 open TopologicalSpace Filter
@@ -7,13 +8,13 @@ open scoped NNReal ENNReal MeasureTheory Topology
 
 namespace PMF
 
-lemma univ_tendsto_one {α ι : Type*} [Preorder ι] [MeasurableSpace α]
+lemma univ_tendsto_one {α ι : Type*} [MeasurableSpace α]
     (p : PMF α) {l : Filter ι} :
     Tendsto (fun (_ : ι) => p.toMeasure (Set.univ)) l (nhds 1) :=by
   simp only [MeasureTheory.measure_univ]
   exact tendsto_const_nhds
 
-lemma tendsto_measure_compl_iff {α ι : Type*} [Preorder ι] [MeasurableSpace α]
+lemma tendsto_measure_compl_iff {α ι : Type*} [MeasurableSpace α]
     {p : PMF α} {l : Filter ι} {s : ι → Set α}
     (hs : ∀ i, MeasurableSet (s i)) :
   (Tendsto (fun i => p.toMeasure (s i)) l (nhds 0))
@@ -41,23 +42,14 @@ lemma tendsto_measure_compl_iff {α ι : Type*} [Preorder ι] [MeasurableSpace �
 
 end PMF
 
-namespace RandomVariable
-
-def C {α : Type*} {β : Type*} (Ω : Type u_1) (X : α → β) : α → Ω → β := fun n _ => X n
-
-end RandomVariable
-
 open Filter MeasureTheory ProbabilityTheory
-
-def TendstoInProbability {Ω : Type u_1} [MeasurableSpace Ω] (X : ℕ → (Ω → ℝ))
-    (P : ProbabilityMeasure Ω) (c : ℝ):= TendstoInMeasure (P.toMeasure) X atTop (fun _ => c)
 
 variable {α : Type u} {ProbFunSet : Set (PMF α)}
     (f : ℝ → ProbFunSet) (Xset : Finset α) (θ : ℝ)
 
-def IsTrueParam {α : Type u} {ProbFunSet : Set (PMF α)} (f₀ : PMF α) (f : ℝ → ProbFunSet) (θ : ℝ):=
-  f θ = f₀
-
+/-- the *likelihood function* of the parameter `θ`
+evaluated at the sample point `ω`, based on the first `n` observations of
+the statistic `X` -/
 noncomputable def Likelihood
     {Ω : Type*} {ProbFunSet : Set (PMF ℝ)}
     (f : ℝ → ProbFunSet) (X : ℕ → Ω → ℝ) (θ : ℝ) (n : ℕ)
@@ -66,8 +58,6 @@ noncomputable def Likelihood
 
 namespace Likelihood
 
-noncomputable abbrev valueSet (n : ℕ) {Ω : Type*} (ω : Ω) (X : ℕ → Ω → ℝ) : Finset ℝ:=
-  Finset.image (fun i => X i ω) (Finset.range n)
 
 lemma pos_likelihood_lt {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) {θ₀ : ℝ} {Ω : Type*}
     (X : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) (θ : ℝ)
@@ -169,6 +159,9 @@ example (f : PMF ℝ) (X : ℝ) (hX : X ∉ f.support) : f.toMeasure {X} = 0 :=b
   rw [@PMF.toOuterMeasure_apply_eq_zero_iff]
   exact Set.disjoint_singleton_right.mpr hX
 
+/-- The set of sample points `ω`
+for which the likelihood of parameter `θ₀` exceeds the likelihood of parameter
+`θ` based on the first `n` observations of the statistic `X` -/
 def likelihoodStrictSublevelSet (X : ℕ → ℝ → ℝ) (n : ℕ) (θ₀ θ : ℝ)
     {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ProbFunSet) : Set ℝ :=
   {(ω : ℝ) | Likelihood f X θ₀ n ω > Likelihood f X θ n ω}
@@ -180,8 +173,10 @@ variable {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
 
 open scoped ProbabilityTheory
 
-
-noncomputable abbrev log_sum_ratio_rv {Ω : Type u_1} [MeasurableSpace Ω]
+/-- the sequence of real-valued random variables
+representing the *log-likelihood ratio* of parameter `θ` against the reference
+parameter `θ₀` evaluated on the observations `X i` -/
+noncomputable abbrev log_sum_ratio_rv {Ω : Type u_1}
   {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet)
   (X : ℕ → Ω → ℝ) (θ₀ θ : ℝ) : ℕ → Ω → ℝ :=
   fun i => fun ω => Real.log (((f θ).1.1 (X (i) ω)).toReal/ ((f θ₀).1.1 (X (i) ω)).toReal)
@@ -275,7 +270,8 @@ lemma edist_compl_ball (μ : ℝ) (S : ℝ → ℝ) :
   simp only [neg_add_cancel, sub_self, add_zero] at h
   exact h
 
-theorem theorem32 {s : Set ℝ} {hs1 : s ⊆ (Set.Iio 0)} {hs2 : Convex ℝ s}
+theorem likelihood_consistency_sublevel_measure_tendsto_one
+    {s : Set ℝ} {hs1 : s ⊆ (Set.Iio 0)} {hs2 : Convex ℝ s}
     {hs3 : ContinuousOn Real.log s} {hs4 : IsClosed s}
     {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
     (X : ℕ → ℝ → ℝ) (hrv : ∀ (i : ℕ), Measurable (X i))
@@ -353,26 +349,4 @@ theorem theorem32 {s : Set ℝ} {hs1 : s ⊆ (Set.Iio 0)} {hs2 : Convex ℝ s}
                 · exact measurable_const
               · exact measurable_const
 
-
-
-
-
-
-
-noncomputable def log_likelihood {α : Type u} {ProbFunSet : Set (PMF α)} {β : Type v}
-    (f : β → ProbFunSet) (θ : β) (Xset : Finset α):= ∑ (x : Xset), ENNReal.log ((f θ).1.1 x)
-
-abbrev root_of_deriv (f : ℝ → ENNReal):= {(θ: ℝ) | deriv (fun x => (f x).toReal) θ = 0}
-
-
-
-#check ConvexOn.map_integral_le
-theorem theorem37
-    {α : Type u} {ProbFunSet : Set (PMF α)} {Ω : Type u_1} [MeasurableSpace Ω]
-    (f : ℝ → ProbFunSet) (θ θ₀ : ℝ) (ω : Set ℝ) (hω : IsOpen ω) (h3 : θ₀ ∈ ω) (x_set : Finset α)
-    (x_set_fun : ℕ → α) (P : ProbabilityMeasure Ω) :  ∃ (θ: ℕ → ℝ),
-    (∀ (n : ℕ), (θ n) ∈ root_of_deriv (Likelihood f x_set))
-    ∧ (TendstoInProbability (RandomVariable.C Ω θ) P θ₀):= by
-  rw [Metric.isOpen_iff] at hω
-  obtain ⟨a, ha, hω⟩ := hω θ₀ h3
-  sorry
+#lint
