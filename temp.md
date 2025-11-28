@@ -1,79 +1,74 @@
-<b>Theorem 3.10</b>
+**Theorem 3.2** 
 
-Let $X_1, \ldots, X_n$ be iid, each with density $f(x \mid \theta)$ with respect to a $\sigma$-finite measure $\mu$, where $\theta$ is real-valued, and suppose the following regularity conditions hold.
-(a) The parameter space $\Omega$ is an open interval (not necessarily finite).
-(b) The distributions $P_\theta$ of the $X_i$ have common support, so that the set $A=\{x$ : $f(x \mid \theta)>0\}$ is independent of $\theta$.
-(c) For every $x \in A$, the density $f(x \mid \theta)$ is third differentiable with respect to $\theta$, and the third derivative is continuous in $\theta$.
-(d) The integral $\int f(x \mid \theta) d \mu(x)$ can be third differentiated under the integral sign.
-(e) The Fisher information $I(\theta)$ defined by (3.5.10) satisfies $0<I(\theta)<\infty$.
-(f) For any given $\theta_0 \in \Omega$, there exists a positive number $c$ and a function $M(x)$ (both of which may depend on $\theta_0$ ) such that
-$$\left|\frac{\partial^3}{\partial \theta^3} \log f(x \mid \theta)\right| \leq M(x)$$
-for all $x \in A, \quad \theta_0-c<\theta<\theta_0+c$ with
-$$E_{\theta_0}[M(\mathbf{X})]<\infty.$$
+Under assumptions
 
-Then, any consistent sequence $\hat{\theta}_n=\hat{\theta}_n\left(X_1, \ldots, X_n\right)$ of roots of the likelihood equation satisfies
-$$\sqrt{n}\left(\hat{\theta}_n-\theta\right) \xrightarrow{£} N\left(0, \frac{1}{I(\theta)}\right) .$$
-
-We shall call such a sequence $\hat{\theta}_n$ an efficient likelihood estimator (ELE) of $\theta$. It is typically (but need not be, see Example 4.1) provided by the MLE. Note also that any sequence $\hat{\theta}_n^*$ satisfying (3.19) is asymptotically efficient in the sense of Definition 2.4.
-
-*Proof of Theorem 3.10.* 
-For any fixed $\mathbf{x}$, expand $l^{\prime}\left(\hat{\theta}_n\right)$ about $\theta_0$,
-$$l^{\prime}\left(\hat{\theta}_n\right)=l^{\prime}\left(\theta_0\right)+\left(\hat{\theta}_n-\theta_0\right) l^{\prime \prime}\left(\theta_0\right)+\frac{1}{2}\left(\hat{\theta}_n-\theta_0\right)^2 l^{\prime \prime \prime}\left(\theta_n^*\right)$$
-where $\theta_n^*$ lies between $\theta_0$ and $\hat{\theta}_n$
-By assumption, the left side is zero, so that
-$$\sqrt{n}\left(\hat{\theta}_n-\theta_0\right)=\frac{(1 / \sqrt{n}) l^{\prime}\left(\theta_0\right)}{-(1 / n) l^{\prime \prime}\left(\theta_0\right)-(1 / 2 n)\left(\hat{\theta}_n-\theta_0\right) l^{\prime \prime \prime}\left(\theta_n^*\right)}$$
-
-where it should be remembered that $l(\theta), l^{\prime}(\theta)$, and so on are functions of $\mathbf{X}$ as well as $\theta$. We shall show that
+(A0) The distributions $P_\theta$ of the observations are distinct (otherwise, $\theta$ cannot be estimated consistently ${ }^2$ ).
+(A1) The distributions $P_\theta$ have common support.
+(A2) The observations are $\mathbf{X}=\left(X_1, \ldots, X_n\right)$, where the $X_i$ are iid with probability density $f\left(x_i \mid \theta\right)$ with respect to $\mu$,
 
 $$
-\frac{1}{\sqrt{n}} l^{\prime}\left(\theta_0\right) \xrightarrow{\mathcal{L}} N\left[0, I\left(\theta_0\right)\right],
+P_{\theta_0}\left(L\left(\theta_0 \mid \mathbf{X}\right)>L(\theta \mid \mathbf{X})\right) \rightarrow 1 \text { as } n \rightarrow \infty
 $$
 
-that
+for any fixed $\theta \neq \theta_0$.
+
+Proof.
+
+The inequality is equivalent to
 
 $$
--\frac{1}{n} l^{\prime \prime}\left(\theta_0\right) \xrightarrow{P} I\left(\theta_0\right)
-$$
-
-and that
-
-$$
-\frac{1}{n} l^{\prime \prime \prime}\left(\theta_n^*\right) \quad \text { is bounded in probability. }
+\frac{1}{n} \Sigma \log \left[f\left(X_i \mid \theta\right) / f\left(X_i \mid \theta_0\right)\right]<0 .
 $$
 
 
-The desired result then follows from Theorem 1.8.10.
-Of the above statements, (3.18) follows from the fact that
+By the law of large numbers, the left side tends in probability toward
 
 $$
-\frac{1}{\sqrt{n}} l^{\prime}\left(\theta_0\right)=\sqrt{n} \frac{1}{n} \sum\left[\frac{f^{\prime}\left(X_i \mid \theta_0\right)}{f\left(X_i \mid \theta_0\right)}-E_{\theta_0} \frac{f^{\prime}\left(X_i \mid \theta_0\right)}{f\left(X_i \mid \theta_0\right)}\right]
-$$
-
-since the expectation term is zero, and then from the central limit theorem (CLT) and the definition of $I(\theta)$.
-
-Next, (3.19) follows because
-
-$$
--\frac{1}{n} l^{\prime \prime}\left(\theta_0\right)=\frac{1}{n} \sum \frac{f^{\prime 2}\left(X_i \mid \theta_0\right)-f\left(X_i \mid \theta_0\right) f^{\prime \prime}\left(X_i \mid \theta_0\right)}{f^2\left(X_i \mid \theta_0\right)},
-$$
-
-and, by the law of large numbers, this tends in probability to
-
-$$
-I\left(\theta_0\right)-E_{\theta_0} \frac{f^{\prime \prime}\left(X_i \mid \theta_0\right)}{f\left(X_i \mid \theta_0\right)}=I\left(\theta_0\right) .
+E_{\theta_0} \log \left[f(X \mid \theta) / f\left(X \mid \theta_0\right)\right] .
 $$
 
 
-Finally, (3.20) is established by noting
+Since $-\log$ is strictly convex, Jensen's inequality shows that
 
 $$
-\frac{1}{n} l^{\prime \prime \prime}(\theta)=\frac{1}{n} \sum \frac{\partial^3}{\partial \theta^3} \log f\left(X_i \mid \theta\right)
+E_{\theta_0} \log \left[f(X \mid \theta) / f\left(X \mid \theta_0\right)\right]<\log E_{\theta_0}\left[f(X \mid \theta) / f\left(X \mid \theta_0\right)\right]=0
 $$
 
-so that by (3.15),
+and the result follows.
+
+**Theorem 3.7**
+Let $X_1, \ldots, X_n$ satisfy 
+
+(A0) The distributions $P_\theta$ of the observations are distinct (otherwise, $\theta$ cannot be estimated consistently ${ }^2$ ).
+(A1) The distributions $P_\theta$ have common support.
+(A2) The observations are $\mathbf{X}=\left(X_1, \ldots, X_n\right)$, where the $X_i$ are iid with probability density $f\left(x_i \mid \theta\right)$ with respect to $\mu$.
+(A3) The parameter space $\Omega$ contains an open set $\omega$ of which the true parameter value $\theta_0$ is an interior point.
+and suppose that for almost all $x, f(x \mid \theta)$ is differentiable with respect to $\theta$ in $\omega$, with derivative $f^{\prime}(x \mid \theta)$. Then, with probability tending to 1 as $n \rightarrow \infty$, the likelihood equation
+$$\frac{\partial}{\partial \theta} l(\theta \mid \mathbf{x})=0$$
+
+or, equivalently, the equation
+$$l^{\prime}(\theta \mid \mathbf{x})=\Sigma \frac{f^{\prime}\left(x_i \mid \theta\right)}{f\left(x_i \mid \theta\right)}=0$$
+
+has a root $\hat{\theta}_n=\hat{\theta}_n\left(x_1, \ldots, x_n\right)$ such that $\hat{\theta}_n\left(X_1, \ldots, X_n\right)$ tends to the true value $\theta_0$ in probability.
+
+
+
+Proof.
+
+Let $a$ be small enough so that $\left(\theta_0-a, \theta_0+a\right) \subset \omega$, and let
 
 $$
-\left|\frac{1}{n} l^{\prime \prime \prime}\left(\theta_n^*\right)\right|<\frac{1}{n}\left[M\left(X_1\right)+\cdots+M\left(X_n\right)\right]
+S_n=\left\{\mathbf{x}: l\left(\theta_0 \mid \mathbf{x}\right)>l\left(\theta_0-a \mid \mathbf{x}\right) \quad \text { and } \quad l\left(\theta_0 \mid \mathbf{x}\right)>l\left(\theta_0+a \mid \mathbf{x}\right)\right\} .
 $$
 
-with probability tending to 1 . The right side tends in probability to $E_{\theta_0}[M(X)]$, and this completes the proof.
+
+By Theorem 3.2, $P_{\theta_0}\left(S_n\right) \rightarrow 1$. For any $\mathbf{x} \in S_n$, there thus exists a value $\theta_0-a< \hat{\theta}_n<\theta_0+a$ at which $l(\theta)$ has a local maximum, so that $l^{\prime}\left(\hat{\theta}_n\right)=0$. Hence, for any $a>0$ sufficiently small, there exists a sequence $\hat{\theta}_n=\hat{\theta}_n(a)$ of roots such that
+
+$$
+P_{\theta_0}\left(\left|\hat{\theta}_n-\theta_0\right|<a\right) \rightarrow 1
+$$
+
+
+It remains to show that we can determine such a sequence, which does not depend on $a$.
+
+Let $\theta_n^*$ be the root closest to $\theta_0$. [This exists because the limit of a sequence of roots is again a root by the continuity of $l(\theta)$.] Then, clearly, $P_{\theta_0}\left(\left|\theta_n^*-\theta_0\right|<a\right) \rightarrow 1$ and this completes the proof.
