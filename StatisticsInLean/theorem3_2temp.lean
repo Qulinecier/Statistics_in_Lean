@@ -97,55 +97,35 @@ lemma pos_likelihood_lt
 
 lemma ne_top {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
     {ProbFunSet : Set (Measure Ω)}
-
     (μ : Measure ℝ := by volume_tac)
     (f : ℝ → ↑ProbFunSet)
-    {h : ∀ (θ: ℝ), IsFiniteMeasure (f θ).1}
-    (θ₀ : ℝ)
-    (X : ℕ → Ω → ℝ) (n : ℕ) (x : ℝ) (θ : ℝ)
-    (hX : ∀ (i : Fin n), x ∈ pdf_support (X i) (f θ₀).1 μ)
-    (h0 : ∀ (i : Fin n), ∀ (θ₁ θ₂ : ℝ), pdf_support (X i) (f θ₁).1
-      = pdf_support (X i) (f θ₂).1) :
-  ∀ᵐ (x : ℝ) ∂μ, Likelihood f X θ n μ x ≠ ⊤ := by
+    (X : ℕ → Ω → ℝ) (n : ℕ) (x : ℝ) (θ : ℝ) {s : NNReal}
+    (hfs : ∀ (i : Fin n), ∀ (a : ℝ), pdf (X i) ((f θ)) μ a ≤ s) : Likelihood f X θ n μ x ≠ ⊤ := by
   unfold Likelihood
   simp only [Finset.prod_apply]
-  rw [MeasureTheory.ae_iff]
-  have h: {a | ¬ ∀ (c : Fin n), pdf (X ↑c) (↑(f θ)) μ a ≠ ⊤}
-    ⊆ {a | ¬ ∏ (c : Fin n), pdf (X ↑c) (↑(f θ)) μ a ≠ ⊤} := by
-    simp only [ne_eq, not_forall, Decidable.not_not, Set.setOf_subset_setOf, forall_exists_index]
-    intro a i h
-
-    apply ENNReal.prod_eq_top
-
-
-
+  apply ENNReal.prod_ne_top
   intro i hi
   apply LT.lt.ne_top (b := ⊤)
+  refine lt_of_le_of_lt ?_ (ENNReal.coe_lt_top (r:=s))
+  exact hfs i x
 
-
-
-  apply MeasureTheory.pdf.ae_lt_top
-
-
-  ·
-  have h := MeasureTheory.pdf.ae_lt_top (ℙ := (f θ).1) (μ := μ)
-  refine lt_of_le_of_lt ?_ ENNReal.one_lt_top
-
-
-
-  #check ENNReal.one_lt_top
 
   -- ENNReal.prod_ne_top (fun x _ => LT.lt.ne_top
   --   (lt_of_le_of_lt (PMF.coe_le_one (f θ).1 (X x.1 ω)) ENNReal.one_lt_top))
 
--- lemma toReal_pos_likelihood_lt {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet)
---     {θ₀ : ℝ} {Ω : Type*} (X : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) (θ : ℝ)
---     (h0 : ∀ (θ₁ θ₂ : ℝ), (f θ₁).1.support = (f θ₂).1.support)
---     (hX : ∀ (i : Fin n), (X i ω) ∈ (f θ₀).1.support) :
---     0 < (∏ (i: Fin (n)), (f θ).1.1 (X (i) ω)).toReal:= by
---   rw [← ENNReal.toReal_zero, ENNReal.toReal_lt_toReal (ENNReal.zero_ne_top)]
---   · exact (pos_likelihood_lt f X n ω θ h0 hX)
---   · exact ne_top f X n ω θ
+lemma toReal_pos_likelihood_lt {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+    {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
+    (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
+    (X : ℕ → Ω → ℝ) (n : ℕ) (x : ℝ) (θ : ℝ)
+    (hX : ∀ (i : Fin n), x ∈ pdf_support (X i) (f θ₀).1 μ)
+    (h0 : ∀ (i : Fin n), ∀ (θ₁ θ₂ : ℝ), pdf_support (X i) (f θ₁).1 μ
+      = pdf_support (X i) (f θ₂).1 μ)
+    {s : NNReal}
+    (hfs : ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), pdf (X i) ((f θ)) μ a ≤ s) :
+    0 < (Likelihood f X θ n μ x).toReal:= by
+  rw [← ENNReal.toReal_zero, ENNReal.toReal_lt_toReal (ENNReal.zero_ne_top)]
+  · exact pos_likelihood_lt f X n θ x h0 hX
+  · exact ne_top μ f X n x θ (hfs θ)
 
 lemma likelihood_iff_log_sum_ratio
     {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
@@ -154,68 +134,71 @@ lemma likelihood_iff_log_sum_ratio
     (X : ℕ → Ω → ℝ) (n : ℕ) (x : ℝ) (θ : ℝ)
     (hX : ∀ (i : Fin n), x ∈ pdf_support (X i) (f θ₀).1 μ)
     (h0 : ∀ (i : Fin n), ∀ (θ₁ θ₂ : ℝ), pdf_support (X i) (f θ₁).1 μ
-      = pdf_support (X i) (f θ₂).1 μ) :
-    ∀ᵐ (x : ℝ) ∂μ, (Likelihood f X θ₀ n μ> Likelihood f X θ n μ)
+      = pdf_support (X i) (f θ₂).1 μ)
+    {s : NNReal}
+    (hfs : ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), pdf (X i) ((f θ)) μ a ≤ s)
+    (hfl : ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), 0 < (pdf (X i) ((f θ)) μ a).toReal) :
+    (Likelihood f X θ₀ n μ x > Likelihood f X θ n μ x)
     ↔ (((n: ℝ)⁻¹• (∑ (i: Fin n),
-    Real.log ((pdf (X i) (f θ₀).1 μ x).toReal/ (pdf (X i) (f θ).1 μ x).toReal)) <0)) := by
+    Real.log ((pdf (X i) (f θ).1 μ x).toReal/ (pdf (X i) (f θ₀).1 μ x).toReal)) <0)) := by
   by_cases hn: n=0
   · rw [hn]
-
-
-    simp only [gt_iff_lt, CharP.cast_eq_zero, inv_zero, Finset.univ_eq_empty, Finset.sum_empty,
-      smul_eq_mul, mul_zero, lt_self_iff_false, Likelihood, Finset.univ_eq_empty, Finset.prod_empty]
+    unfold Likelihood
+    simp only [Finset.univ_eq_empty, Finset.prod_empty, gt_iff_lt, lt_self_iff_false,
+      CharP.cast_eq_zero, inv_zero, Finset.sum_empty, smul_eq_mul, mul_zero]
   · constructor
     · intro h
       refine (smul_neg_iff_of_pos_left ?_).mpr ?_
       · simp only [inv_pos, Nat.cast_pos]
         omega
-      ·
-        rw [gt_iff_lt, ← ENNReal.toReal_lt_toReal (ne_top f X n ω θ) (ne_top f X n ω θ₀),
+      · rw [gt_iff_lt, ← ENNReal.toReal_lt_toReal (ne_top μ f X n x θ (hfs θ))
+          (ne_top μ f X n x θ₀ (hfs θ₀)),
           ← div_lt_one] at h
         · rw [← Real.log_neg_iff] at h
           · unfold Likelihood at h
+            simp only [Finset.prod_apply] at h
             rw [ENNReal.toReal_prod, ENNReal.toReal_prod, ← Finset.prod_div_distrib,
               Real.log_prod] at h
             · exact h
             · intro i hi
               rw [@div_ne_zero_iff]
-              refine ⟨by rw [ENNReal.toReal_ne_zero]; refine ⟨by
-                rw [h0 θ₀ θ] at hX; exact (PMF.mem_support_iff (f θ).1 (X i ω)).mp (hX i),
-                ne_of_lt (lt_of_le_of_lt (PMF.coe_le_one (f θ).1 (X i ω)) ENNReal.one_lt_top)⟩, by
-                rw [ENNReal.toReal_ne_zero]; refine ⟨
-                  (PMF.mem_support_iff (f θ₀).1 (X i ω)).mp (hX i),
-                  ne_of_lt (lt_of_le_of_lt (PMF.coe_le_one (f θ₀).1 (X i ω)) ENNReal.one_lt_top)⟩⟩
+              refine ⟨Ne.symm (ne_of_lt (hfl θ i x)), Ne.symm (ne_of_lt (hfl θ₀ i x))⟩
           · rw [@div_pos_iff]
             left
-            refine ⟨by rw [← ENNReal.toReal_zero,
-              ENNReal.toReal_lt_toReal (ENNReal.zero_ne_top)
-              (ne_top f X n ω θ)]; exact pos_likelihood_lt f X n ω θ h0 hX,
-              by rw [← ENNReal.toReal_zero, ENNReal.toReal_lt_toReal
-              (ENNReal.zero_ne_top) (ne_top f X n ω θ₀)];exact pos_likelihood_lt f X n ω θ₀ h0 hX⟩
-        · rw [← ENNReal.toReal_zero,
-            ENNReal.toReal_lt_toReal (ENNReal.zero_ne_top) (ne_top f X n ω θ₀)]
-          exact pos_likelihood_lt f X n ω θ₀ h0 hX
+            refine ⟨toReal_pos_likelihood_lt μ f θ₀ X n x θ hX h0 hfs,
+              toReal_pos_likelihood_lt μ f θ₀ X n x θ₀ hX h0 hfs⟩
+        · exact toReal_pos_likelihood_lt μ f θ₀ X n x θ₀ hX h0 hfs
     · intro h
       rw [smul_neg_iff_of_pos_left (by simp only [inv_pos, Nat.cast_pos]; omega)] at h
       rw [← Real.log_prod] at h
       · rw [Finset.prod_div_distrib, ← ENNReal.toReal_prod, ← ENNReal.toReal_prod,
           Real.log_neg_iff, div_lt_one, ENNReal.toReal_lt_toReal] at h
         · rw [gt_iff_lt]
+          unfold Likelihood
+          simp only [Finset.prod_apply]
           exact h
-        · exact ne_top f X n ω θ
-        · exact ne_top f X n ω θ₀
-        · exact toReal_pos_likelihood_lt f X n ω θ₀ h0 hX
+        · have h1: Likelihood f X θ n μ x ≠ ⊤ := by exact ne_top μ f X n x θ (hfs θ)
+          unfold Likelihood at h1
+          simp only [Finset.prod_apply] at h1
+          exact h1
+        · have h1: Likelihood f X θ₀ n μ x ≠ ⊤ := by exact ne_top μ f X n x θ₀ (hfs θ₀)
+          unfold Likelihood at h1
+          simp only [Finset.prod_apply] at h1
+          exact h1
+        · have h1:= toReal_pos_likelihood_lt μ f θ₀ X n x θ₀ hX h0 hfs
+          unfold Likelihood at h1
+          simp only [Finset.prod_apply] at h1
+          exact h1
         · rw [@div_pos_iff]
           left
-          refine ⟨toReal_pos_likelihood_lt f X n ω θ h0 hX,
-            toReal_pos_likelihood_lt f X n ω θ₀ h0 hX⟩
+          have h1:= toReal_pos_likelihood_lt μ f θ₀ X n x θ₀ hX h0 hfs
+          have h2:= toReal_pos_likelihood_lt μ f θ₀ X n x θ hX h0 hfs
+          unfold Likelihood at h1 h2
+          simp only [Finset.prod_apply] at h1 h2
+          exact ⟨h2, h1⟩
       · intro i hi
         rw [div_ne_zero_iff]
-        refine ⟨by rw [h0 θ₀ θ] at hX; rw [ENNReal.toReal_ne_zero]; refine ⟨
-          (PMF.mem_support_iff (f θ).1 (X i ω)).mp (hX i),
-          ne_of_lt (lt_of_le_of_lt (PMF.coe_le_one (f θ).1 (X i ω)) ENNReal.one_lt_top)⟩, by
-          rw [ENNReal.toReal_ne_zero]; refine ⟨(PMF.mem_support_iff (f θ₀ ).1 (X i ω)).mp (hX i),
-          ne_of_lt (lt_of_le_of_lt (PMF.coe_le_one (f θ₀).1 (X i ω)) ENNReal.one_lt_top)⟩⟩
+        refine ⟨Ne.symm (ne_of_lt (hfl θ i x)) , Ne.symm (ne_of_lt (hfl θ₀ i x))⟩
 
 
 example (f : PMF ℝ) (X : ℝ) (hX : X ∉ f.support) : f.toMeasure {X} = 0 :=by
@@ -339,13 +322,19 @@ lemma edist_compl_ball (μ : ℝ) (S : ℝ → ℝ) :
   exact h
 
 theorem likelihood_consistency_sublevel_measure_tendsto_one
-    {s : Set ℝ} {hs1 : s ⊆ (Set.Iio 0)} {hs2 : Convex ℝ s}
-    {hs3 : ContinuousOn Real.log s} {hs4 : IsClosed s}
     {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
-    {ProbFunSet : Set (Measure Ω)}
-    {μ : Measure ℝ}
-    (f : ℝ → ProbFunSet) (θ₀ θ: ℝ)
-    (X : ℕ → Ω → ℝ) (hrv : ∀ (i : ℕ), Measurable (X i))
+    {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
+    (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
+    (X : ℕ → Ω → ℝ) (n : ℕ) (x : ℝ) (θ : ℝ)
+    (hX : ∀ (i : Fin n), x ∈ pdf_support (X i) (f θ₀).1 μ)
+    (h0 : ∀ (i : Fin n), ∀ (θ₁ θ₂ : ℝ), pdf_support (X i) (f θ₁).1 μ
+      = pdf_support (X i) (f θ₂).1 μ)
+    {s : NNReal}
+    (hfs : ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), pdf (X i) ((f θ)) μ a ≤ s)
+    (hfl : ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), 0 < (pdf (X i) ((f θ)) μ a).toReal)
+    {S : Set ℝ} {hs1 : S ⊆ (Set.Iio 0)} {hs2 : Convex ℝ S}
+    {hs3 : ContinuousOn Real.log S} {hs4 : IsClosed S}
+    (hrv : ∀ (i : ℕ), Measurable (X i))
     (hMeasurable : ∀ (θ : ℝ), Measurable (f θ).1.1)
     {μ : Measure ℝ}
  :
