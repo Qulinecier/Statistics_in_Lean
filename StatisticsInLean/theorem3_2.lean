@@ -300,6 +300,8 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
       intro i j hij
       simpa [Function.onFun] using (iIndepFun_log_sum_ratio θ f θ₀ X hindep hMeasurable).indepFun
         hij
+      
+
     have hlaw := MeasureTheory.tendstoInMeasure_of_tendsto_ae_of_measurable_edist
       (Measurable_edist_log_sum_ratio θ f θ₀ X hrv hMeasurable)
       (ProbabilityTheory.strong_law_ae_real (log_sum_ratio_rv f X θ₀ θ) hint1
@@ -308,9 +310,11 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
     have hJensen := StrictConcaveOn.ae_eq_const_or_lt_map_average (μ:= ((f θ₀).1).toMeasure) (f:=
       (fun x => (((f θ).1.1 (X 0 x)).toReal / ((f θ₀).1.1 (X 0 x)).toReal))) (g:= Real.log)
       (StrictConcaveOn.subset strictConcaveOn_log_Iio hs1 hs2) hs3 hs4 hs5 hint2 hint1
+    
     cases hJensen with
       | inl hp => exact False.elim (hne_const hp)
       | inr hJensen =>
+
           unfold average at hJensen
           simp only [measure_univ, inv_one, one_smul] at hJensen
           generalize hμ: ∫ (x : ℝ), Real.log (((f θ).1.1 (X 0 x)).toReal /
@@ -322,6 +326,7 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
               not_false_eq_true, EReal.toENNReal_of_ne_top, EReal.toReal_neg, EReal.toReal_coe,
               ENNReal.ofReal_pos, Left.neg_pos_iff]
             exact hJensen
+          
           specialize hlaw ((- μ).toEReal).toENNReal hμ2
           simp only [eventually_const]
           rw [PMF.tendsto_measure_compl_iff] at hlaw

@@ -217,20 +217,26 @@ def likelihoodStrictSublevelSet
     (μ : Measure ℝ := by volume_tac) : Set ℝ :=
   {(x : ℝ) | Likelihood f X θ₀ n μ x> Likelihood f X θ n μ x}
 
-variable {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
-    (X : ℕ → ℝ → ℝ) (hindep : iIndepFun X ((f θ₀).1.toMeasure))
-    (hident : ∀ i, IdentDistrib (X i) (X 0) ((f θ₀).1.toMeasure) ((f θ₀).1.toMeasure))
-    (hX : ∀ (n : ℕ), ∀ᵐ (ω : ℝ), ∀ (i : Fin n), X i ω ∈ (f θ₀).1.support)
+noncomputable def logLR {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+    (X : ℕ → Ω → ℝ) (θ₀ θ : ℝ)
+    {ProbFunSet : Set (Measure Ω)} (f : ℝ → ProbFunSet)
+    (μ : Measure ℝ := by volume_tac)
+    (i : ℕ) (ω : Ω) : ℝ :=
+  Real.log
+    ((pdf (X i) (↑(f θ)) μ (X i ω)).toReal /
+     (pdf (X i) (↑(f θ₀)) μ (X i ω)).toReal)
 
 open scoped ProbabilityTheory
 
 /-- the sequence of real-valued random variables
 representing the *log-likelihood ratio* of parameter `θ` against the reference
 parameter `θ₀` evaluated on the observations `X i` -/
-noncomputable abbrev log_sum_ratio_rv {Ω : Type u_1}
-  {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet)
+noncomputable abbrev log_sum_ratio_rv {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+  {ProbFunSet : Set (Measure Ω)} (f : ℝ → ProbFunSet)
+  {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (μ : Measure ℝ := by volume_tac) (n: ℕ)
   (X : ℕ → Ω → ℝ) (θ₀ θ : ℝ) : ℕ → Ω → ℝ :=
-  fun i => fun ω => Real.log (((f θ).1.1 (X (i) ω)).toReal/ ((f θ₀).1.1 (X (i) ω)).toReal)
+  fun (i: Fin n) => fun (x: ℝ) =>
+    Real.log ((pdf (X i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) ((f θ₀)) μ x).toReal)
 
 -- lemma Measurable_log_ratio
 --     {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
@@ -264,19 +270,23 @@ noncomputable abbrev log_sum_ratio_rv {Ω : Type u_1}
 --     (u:=(fun x => Real.log ((((f θ).1.1 x).toReal) / (((f θ₀).1.1 x).toReal))))
 --   exact Measurable_log_ratio θ f θ₀ hMeasurable
 
--- lemma Measurable_edist_log_sum_ratio {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
---     (X : ℕ → ℝ → ℝ) (hrv : ∀ (i : ℕ), Measurable (X i))
---     (hMeasurable : ∀ (θ : ℝ), Measurable (f θ).1.1) :
---     ∀ (n : ℕ), Measurable fun a ↦ edist
---     ((∑ i ∈ Finset.range n, log_sum_ratio_rv f X θ₀ θ i a) / n)
---     (∫ (x : ℝ), log_sum_ratio_rv f X θ₀ θ 0 x ∂((f θ₀).1).toMeasure) := by
---   intro n
---   apply Measurable.edist
---   · apply Measurable.div
---     · apply Finset.measurable_fun_sum
---       exact fun i _ => Measurable.comp (Measurable_log_ratio θ f θ₀ hMeasurable) (hrv i)
---     · exact measurable_const
---   · simp only [measurable_const]
+lemma Measurable_edist_log_sum_ratio
+    {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+    {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
+    [IsFiniteMeasure μ]
+    (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
+    (X : ℕ → Ω → ℝ)
+    [IsFiniteMeasure (f θ₀).1]
+    (hrv : ∀ (i : ℕ), Measurable (X i)) :
+    ∀ (n : ℕ), Measurable fun a ↦ edist ((∑ i ∈ Finset.range n, X i a) / ↑n)
+      (∫ (x : Ω), X 0 x ∂↑(f θ₀)) := by
+  intro n
+  apply Measurable.edist
+  · apply Measurable.div
+    · apply Finset.measurable_fun_sum
+      exact fun i _ => hrv i
+    · simp only [measurable_const]
+  · simp only [measurable_const]
 
 -- lemma integral_sum_ratio_eq_one {ProbFunSet : Set (PMF ℝ)} (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
 --     (X : ℕ → ℝ → ℝ)
@@ -321,81 +331,202 @@ lemma edist_compl_ball (μ : ℝ) (S : ℝ → ℝ) :
   simp only [neg_add_cancel, sub_self, add_zero] at h
   exact h
 
+-- lemma temp{Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+--     {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
+--     [IsFiniteMeasure μ]
+--     (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
+--     (X : ℕ → Ω → ℝ) (θ : ℝ)
+--     [IsFiniteMeasure (f θ₀).1]
+--     (hint0 : Integrable (X 0) (f θ₀).1)
+--     (hX : ∀ (n: ℕ), ∀ (x: ℝ), ∀ (i : Fin n), x ∈ pdf_support (X i) (f θ₀).1 μ)
+--     (h0 : ∀ (n: ℕ), ∀ (i : Fin n), ∀ (θ₁ θ₂ : ℝ), pdf_support (X i) (f θ₁).1 μ
+--       = pdf_support (X i) (f θ₂).1 μ)
+--     {s : NNReal}
+--     (hfs : ∀ (n: ℕ), ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), pdf (X i) ((f θ)) μ a ≤ s)
+--     (hfl : ∀ (n: ℕ), ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), 0 < (pdf (X i) ((f θ)) μ a).toReal)
+--     {S : Set ℝ} {hs1 : S ⊆ (Set.Iio 0)} {hs2 : Convex ℝ S}
+--     {hs3 : ContinuousOn Real.log S} {hs4 : IsClosed S}
+--     (hrv : ∀ (i : ℕ), Measurable (X i))
+--     (hMeasurable : ∀ (θ : ℝ), Measurable (f θ).1.1)
+--     (hindep: Pairwise (Function.onFun (fun x1 x2 ↦ x1 ⟂ᵢ[↑(f θ₀)] x2) X))
+--     (hident: ∀ (i : ℕ), IdentDistrib (X i) (X 0) ↑(f θ₀) ↑(f θ₀))
+--     {hs5 : ∀ (i : ℕ), ∀ (x : ℝ), (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal ∈ S}
+--     (hint1 : ∀ (n : ℕ), ∀ (i: Fin n),
+--       Integrable (fun x ↦ (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) μ)
+--     (hint2 : ∀ (n : ℕ), ∀ (i: Fin n),
+--       Integrable (Real.log ∘ fun x ↦ (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) μ)
+--     (hProb : ∀ (n : ℕ), IsProbabilityMeasure (Measure.map (X n) (f θ₀).1))
+--     (a : ℕ): ∀ (n : ℕ), {x | (n: ℝ)⁻¹ • ∑ (i: Fin n ),
+--     Real.log ((pdf (X ↑i) (↑(f θ)) μ x).toReal /
+--     (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) < 0} = ⊤ := by
+--   intro n
+--   ext x
+--   simp only [Set.mem_setOf_eq, Set.top_eq_univ, Set.mem_univ, iff_true]
+--   simp?
+--   -- al.log
+--   --   (∫ (x : ℝ),
+--   --     (fun x ↦ (fun x ↦ (↑↑(f θ) (X 0 x)).toReal / (↑↑(f θ₀) (X 0 x)).toReal) x)
+--   --       x ∂((↑(f θ₀)).toMeasure Set.univ)⁻¹ • (↑(f θ₀)).toMeasure)
+--   have h: ∫ (x : ℝ), (n: ℝ)⁻¹ •
+--     Real.log ((pdf (X ↑i) (↑(f θ)) μ x).toReal /
+--     (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) < 0
+
+
+--   #check (StrictConcaveOn.ae_eq_const_or_lt_map_average (f:=
+--       (fun (i : Fin n) => (pdf (X i) (f θ).1 μ x).toReal / (pdf (X i) (f θ₀).1 μ x).toReal)) (g:= Real.log)
+--       (StrictConcaveOn.subset strictConcaveOn_log_Iio hs1 hs2) hs3 hs4 ?_ (hint1 n i)
+--       (hint2 n i))
+
+--   have hJensen :
+--     ∀ (n : ℕ), ∀ (i: Fin n),
+--     (fun (i : Fin n) ↦  (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) =ᶠ[ae μ]
+--     Function.const ℝ (⨍ (i : Fin n), (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal ∂μ) ∨
+--     ⨍ (x : ℝ), Real.log ((pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) ∂μ <
+--     Real.log (⨍ (x : ℝ), (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal ∂μ)
+--     :=by
+--     intro n i
+--     exact
+--       (StrictConcaveOn.ae_eq_const_or_lt_map_average (f:=
+--       (fun (i : Fin n) ↦  (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal))
+--       (g:= Real.log)
+--       (StrictConcaveOn.subset strictConcaveOn_log_Iio hs1 hs2) hs3 hs4 ?_ ?_ ?_)
+
+
+
+
+
+
+
 theorem likelihood_consistency_sublevel_measure_tendsto_one
     {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
     {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
+    [IsFiniteMeasure μ]
     (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
-    (X : ℕ → Ω → ℝ) (n : ℕ) (x : ℝ) (θ : ℝ)
-    (hX : ∀ (i : Fin n), x ∈ pdf_support (X i) (f θ₀).1 μ)
-    (h0 : ∀ (i : Fin n), ∀ (θ₁ θ₂ : ℝ), pdf_support (X i) (f θ₁).1 μ
+    (X : ℕ → Ω → ℝ) (θ : ℝ)
+    [IsFiniteMeasure (f θ₀).1]
+    (hint0 : Integrable (X 0) (f θ₀).1)
+    (hX : ∀ (n: ℕ), ∀ (x: ℝ), ∀ (i : Fin n), x ∈ pdf_support (X i) (f θ₀).1 μ)
+    (h0 : ∀ (n: ℕ), ∀ (i : Fin n), ∀ (θ₁ θ₂ : ℝ), pdf_support (X i) (f θ₁).1 μ
       = pdf_support (X i) (f θ₂).1 μ)
     {s : NNReal}
-    (hfs : ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), pdf (X i) ((f θ)) μ a ≤ s)
-    (hfl : ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), 0 < (pdf (X i) ((f θ)) μ a).toReal)
+    (hfs : ∀ (n: ℕ), ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), pdf (X i) ((f θ)) μ a ≤ s)
+    (hfl : ∀ (n: ℕ), ∀ (θ : ℝ), ∀ (i : Fin n), ∀ (a : ℝ), 0 < (pdf (X i) ((f θ)) μ a).toReal)
     {S : Set ℝ} {hs1 : S ⊆ (Set.Iio 0)} {hs2 : Convex ℝ S}
     {hs3 : ContinuousOn Real.log S} {hs4 : IsClosed S}
     (hrv : ∀ (i : ℕ), Measurable (X i))
     (hMeasurable : ∀ (θ : ℝ), Measurable (f θ).1.1)
-    {μ : Measure ℝ}
- :
-    Tendsto (fun n : ℕ => Measure.map (X n) (f θ₀).1 (likelihoodStrictSublevelSet X n θ₀ θ f))
-      atTop (nhds 1) := by
-    unfold likelihoodStrictSublevelSet
+    (hindep: Pairwise (Function.onFun (fun x1 x2 ↦ x1 ⟂ᵢ[↑(f θ₀)] x2) X))
+    (hident: ∀ (i : ℕ), IdentDistrib (X i) (X 0) ↑(f θ₀) ↑(f θ₀))
+    {hs5 : ∀ (n : ℕ), ∀ (i: Fin n),
+      ∀ᵐ (x : ℝ) ∂μ, ((pdf (X i) (f θ).1 μ x).toReal / (pdf (X i) (f θ₀).1 μ x).toReal) ∈ S}
+    (hint1 : ∀ (n : ℕ), ∀ (i: Fin n),
+      Integrable (fun x ↦ (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) μ)
+    (hint2 : ∀ (n : ℕ), ∀ (i: Fin n),
+      Integrable (Real.log ∘ fun x ↦ (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) μ)
+    (hProb : ∀ (n : ℕ), IsProbabilityMeasure (Measure.map (X n) (f θ₀).1))
+    (a : ℕ)
+    :
+    Tendsto (fun n : ℕ => ((f θ₀).1) {ω : Ω |
+       Likelihood f X θ₀ n μ (X n ω) > Likelihood f X θ n μ (X n ω)}) atTop (𝓝 1)
+ := by
+
+    simp_rw [fun (n: ℕ)=> fun (x: ℝ) =>
+      likelihood_iff_log_sum_ratio μ f θ₀ X n x θ (hX n x) (h0 n) (hfs n) (hfl n)]
 
 
-
-    simp_rw [fun ω => fun (n: ℕ) => likelihood_iff_log_sum_ratio f θ₀ X n ω θ (hX n ω) h0]
-    have hpairindep: Pairwise (Function.onFun
-        (fun x1 x2 ↦ x1 ⟂ᵢ[((f θ₀).1).toMeasure] x2) (log_sum_ratio_rv f X θ₀ θ)):= by
-      classical
-      intro i j hij
-      simpa [Function.onFun] using (iIndepFun_log_sum_ratio θ f θ₀ X hindep hMeasurable).indepFun
-        hij
     have hlaw := MeasureTheory.tendstoInMeasure_of_tendsto_ae_of_measurable_edist
-      (Measurable_edist_log_sum_ratio θ f θ₀ X hrv hMeasurable)
-      (ProbabilityTheory.strong_law_ae_real (log_sum_ratio_rv f X θ₀ θ) hint1
-      hpairindep (IdentDistrib_log_sum_ratio θ f θ₀ X hident hMeasurable))
+      (fun n ↦ Measurable_edist_log_sum_ratio μ f θ₀ X hrv n)
+      (ProbabilityTheory.strong_law_ae_real X hint0 hindep hident)
     unfold TendstoInMeasure at hlaw
-    have hJensen := StrictConcaveOn.ae_eq_const_or_lt_map_average (μ:= ((f θ₀).1).toMeasure) (f:=
-      (fun x => (((f θ).1.1 (X 0 x)).toReal / ((f θ₀).1.1 (X 0 x)).toReal))) (g:= Real.log)
-      (StrictConcaveOn.subset strictConcaveOn_log_Iio hs1 hs2) hs3 hs4 hs5 hint2 hint1
-    cases hJensen with
-      | inl hp => exact False.elim (hne_const hp)
-      | inr hJensen =>
-          unfold average at hJensen
-          simp only [measure_univ, inv_one, one_smul] at hJensen
-          generalize hμ: ∫ (x : ℝ), Real.log (((f θ).1.1 (X 0 x)).toReal /
-            ((f θ₀).1.1 (X 0 x)).toReal) ∂((f θ₀).1).toMeasure = μ at *
-          rw [integral_sum_ratio_eq_one θ f θ₀ X hX hid hint2] at hJensen
-          simp only [Real.log_one] at hJensen
-          have hμ2: 0 < ((- μ).toEReal).toENNReal:= by
-            simp only [EReal.coe_neg, ne_eq, EReal.neg_eq_top_iff, EReal.coe_ne_bot,
-              not_false_eq_true, EReal.toENNReal_of_ne_top, EReal.toReal_neg, EReal.toReal_coe,
-              ENNReal.ofReal_pos, Left.neg_pos_iff]
-            exact hJensen
-          specialize hlaw ((- μ).toEReal).toENNReal hμ2
-          simp only [eventually_const]
-          rw [PMF.tendsto_measure_compl_iff] at hlaw
-          · apply tendsto_of_tendsto_of_tendsto_of_le_of_le hlaw (PMF.univ_tendsto_one (f θ₀).1)
-            · intro n
-              simp only [EReal.coe_neg, ne_eq, EReal.neg_eq_top_iff, EReal.coe_ne_bot,
-                not_false_eq_true, EReal.toENNReal_of_ne_top, EReal.toReal_neg, EReal.toReal_coe,
-                smul_eq_mul]
-              apply ((f θ₀).1.toMeasure).mono
-              simp_rw [← Fin.sum_univ_eq_sum_range, div_eq_mul_inv, mul_comm]
-              apply edist_compl_ball
-            · intro x
-              simp only [smul_eq_mul, measure_univ]
-              exact prob_le_one
-          · intro i
-            apply measurableSet_le
-            · simp only [EReal.coe_neg, ne_eq, EReal.neg_eq_top_iff, EReal.coe_ne_bot,
-              not_false_eq_true, EReal.toENNReal_of_ne_top, EReal.toReal_neg, EReal.toReal_coe,
-              measurable_const]
-            · apply Measurable.edist
-              · apply Measurable.div
-                · apply Finset.measurable_fun_sum
-                  intro x hx
-                  exact Measurable.comp (Measurable_log_ratio θ f θ₀ hMeasurable) (hrv x)
-                · exact measurable_const
-              · exact measurable_const
+
+
+
+
+    #check StrictConcaveOn.subset strictConcaveOn_log_Iio hs1 hs2
+
+    -- have hJensen :
+    --   ∀ (n : ℕ), ∀ (i: Fin n),
+    --   (fun (i : Fin n) ↦ (fun (x : ℝ) => (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal)) =ᶠ[ae μ]
+    --   Function.const ℝ (⨍ (i : Fin n), (fun (x : ℝ) => (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal)) ∂μ) ∨
+    --   ⨍ (x : ℝ), Real.log ((pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) ∂μ <
+    --   Real.log (⨍ (x : ℝ), (pdf (X ↑i) (↑(f θ)) μ x).toReal / (pdf (X ↑i) (↑(f θ₀)) μ x).toReal ∂μ)
+    --   :=by
+    --   intro n i
+    --   exact
+    --     (StrictConcaveOn.ae_eq_const_or_lt_map_average (f:=
+    --     (fun x => (pdf (X i) (f θ).1 μ x).toReal / (pdf (X i) (f θ₀).1 μ x).toReal)) (g:= Real.log)
+    --     (StrictConcaveOn.subset strictConcaveOn_log_Iio hs1 hs2) hs3 hs4 (hs5 n i) (hint1 n i)
+    --     (hint2 n i))
+
+    -- unfold average at hJensen
+
+    rw [tendsto_order]
+    constructor
+    · intro a' ha'
+      refine (Filter.eventually_atTop.2 ?_)
+      use a
+      intro n hn
+
+
+    · intro a' ha'
+      refine (Filter.eventually_atTop.2 ?_)
+      use a
+      intro n hn
+
+      have h: (Measure.map (X n) (f θ₀).1)
+        {x | (n: ℝ)⁻¹ • ∑ (i: Fin n ),
+        Real.log ((pdf (X ↑i) (↑(f θ)) μ x).toReal /
+        (pdf (X ↑i) (↑(f θ₀)) μ x).toReal) < 0} ≤ 1 := by
+        have hprob : IsProbabilityMeasure (Measure.map (X n) (f θ₀).1) := by
+          infer_instance
+        exact prob_le_one
+      exact Std.lt_of_le_of_lt h ha'
+
+
+
+
+
+
+
+
+
+    -- cases hJensen with
+    --   | inl hp => exact False.elim (hne_const hp)
+    --   | inr hJensen =>
+    --       unfold average at hJensen
+    --       simp only [measure_univ, inv_one, one_smul] at hJensen
+    --       generalize hμ: ∫ (x : ℝ), Real.log (((f θ).1.1 (X 0 x)).toReal /
+    --         ((f θ₀).1.1 (X 0 x)).toReal) ∂((f θ₀).1).toMeasure = μ at *
+    --       rw [integral_sum_ratio_eq_one θ f θ₀ X hX hid hint2] at hJensen
+    --       simp only [Real.log_one] at hJensen
+    --       have hμ2: 0 < ((- μ).toEReal).toENNReal:= by
+    --         simp only [EReal.coe_neg, ne_eq, EReal.neg_eq_top_iff, EReal.coe_ne_bot,
+    --           not_false_eq_true, EReal.toENNReal_of_ne_top, EReal.toReal_neg, EReal.toReal_coe,
+    --           ENNReal.ofReal_pos, Left.neg_pos_iff]
+    --         exact hJensen
+    --       specialize hlaw ((- μ).toEReal).toENNReal hμ2
+    --       simp only [eventually_const]
+    --       rw [PMF.tendsto_measure_compl_iff] at hlaw
+    --       · apply tendsto_of_tendsto_of_tendsto_of_le_of_le hlaw (PMF.univ_tendsto_one (f θ₀).1)
+    --         · intro n
+    --           simp only [EReal.coe_neg, ne_eq, EReal.neg_eq_top_iff, EReal.coe_ne_bot,
+    --             not_false_eq_true, EReal.toENNReal_of_ne_top, EReal.toReal_neg, EReal.toReal_coe,
+    --             smul_eq_mul]
+    --           apply ((f θ₀).1.toMeasure).mono
+    --           simp_rw [← Fin.sum_univ_eq_sum_range, div_eq_mul_inv, mul_comm]
+    --           apply edist_compl_ball
+    --         · intro x
+    --           simp only [smul_eq_mul, measure_univ]
+    --           exact prob_le_one
+    --       · intro i
+    --         apply measurableSet_le
+    --         · simp only [EReal.coe_neg, ne_eq, EReal.neg_eq_top_iff, EReal.coe_ne_bot,
+    --           not_false_eq_true, EReal.toENNReal_of_ne_top, EReal.toReal_neg, EReal.toReal_coe,
+    --           measurable_const]
+    --         · apply Measurable.edist
+    --           · apply Measurable.div
+    --             · apply Finset.measurable_fun_sum
+    --               intro x hx
+    --               exact Measurable.comp (Measurable_log_ratio θ f θ₀ hMeasurable) (hrv x)
+    --             · exact measurable_const
+    --           · exact measurable_const
