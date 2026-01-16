@@ -101,7 +101,7 @@ namespace Likelihood
 
 
 lemma pos_likelihood_lt
-    {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω] {ProbFunSet : Set (Measure Ω)}
+    {Ω : Type*} [MeasurableSpace Ω] {ProbFunSet : Set (Measure Ω)}
     {f : ℝ → ↑ProbFunSet} {θ₀ : ℝ} {μ : Measure ℝ}
     {X : ℕ → Ω → ℝ} (n : ℕ) {θ : ℝ} {ω : Ω}
     (h0 : ∀ (θ₁ θ₂ : ℝ), pdf_support (X 0) (f θ₁).1 μ
@@ -118,7 +118,7 @@ lemma pos_likelihood_lt
   rw [h0] at hX
   exact hX h'
 
-lemma ne_top {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+lemma ne_top {Ω : Type*} [MeasurableSpace Ω]
     {ProbFunSet : Set (Measure Ω)}
     (μ : Measure ℝ := by volume_tac)
     (f : ℝ → ↑ProbFunSet)
@@ -136,7 +136,7 @@ lemma ne_top {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
   -- ENNReal.prod_ne_top (fun x _ => LT.lt.ne_top
   --   (lt_of_le_of_lt (PMF.coe_le_one (f θ).1 (X x.1 ω)) ENNReal.one_lt_top))
 
-lemma toReal_pos_likelihood_lt {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+lemma toReal_pos_likelihood_lt {Ω : Type*} [MeasurableSpace Ω]
     {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
     {f : ℝ → ↑ProbFunSet} (θ₀ : ℝ)
     {X : ℕ → Ω → ℝ} (n : ℕ) {ω : Ω} (θ : ℝ)
@@ -151,7 +151,7 @@ lemma toReal_pos_likelihood_lt {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpa
   · exact ne_top μ f X n ω θ (hfs θ)
 
 lemma likelihood_iff_log_sum_ratio
-    {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+    {Ω : Type*} [MeasurableSpace Ω]
     {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
     (f : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
     (X : ℕ → Ω → ℝ) (n : ℕ) (ω : Ω) (θ : ℝ)
@@ -235,7 +235,7 @@ example (f : PMF ℝ) (X : ℝ) (hX : X ∉ f.support) : f.toMeasure {X} = 0 :=b
 --     (μ : Measure ℝ := by volume_tac) : Set ℝ :=
 --   {(x : ℝ) | Likelihood f X θ₀ n μ x> Likelihood f X θ n μ x}
 
-noncomputable def logLR {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+noncomputable def logLR {Ω : Type*} [MeasurableSpace Ω]
     (X : ℕ → Ω → ℝ) (θ₀ θ : ℝ)
     {ProbFunSet : Set (Measure Ω)} (f : ℝ → ProbFunSet)
     (μ : Measure ℝ := by volume_tac)
@@ -305,12 +305,12 @@ lemma IdentDistrib_log_sum_ratio
   exact Measurable_log_ratio f μ X θ₀ θ
 
 lemma Measurable_edist_log_sum_ratio
-    {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+    {Ω : Type*} [MeasurableSpace Ω]
     {ProbFunSet : Set (Measure Ω)} (μ : Measure ℝ := by volume_tac)
-    [IsFiniteMeasure μ]
+
     (f : ℝ → ↑ProbFunSet) (θ₀ θ : ℝ)
     (X : ℕ → Ω → ℝ)
-    [IsFiniteMeasure (f θ₀).1]
+
     (hrv : ∀ (i : ℕ), Measurable (X i)) :
     ∀ (n : ℕ), Measurable fun (ω : Ω) ↦ edist ((∑ i ∈ Finset.range n,
     (log_sum_ratio_rv f μ X θ₀ θ i ω))/n)
@@ -494,12 +494,11 @@ noncomputable abbrev f {Ω : Type*} [MeasurableSpace Ω]
   := pdf X P μ
 
 theorem likelihood_consistency_sublevel_measure_tendsto_one
-    {Ω : Type*} [MeasurableSpace Ω] [TopologicalSpace Ω]
+    {Ω : Type*} [MeasurableSpace Ω]
     {ProbFunSet : Set (Measure Ω)}
     [FunLike (↑ProbFunSet) (Set Ω) ℝ≥0∞]
     [OuterMeasureClass (↑ProbFunSet) Ω]
     (μ : Measure ℝ := by volume_tac)
-    [IsFiniteMeasure μ]
     (P : ℝ → ↑ProbFunSet) (θ₀ : ℝ)
     (X : ℕ → Ω → ℝ) (θ : ℝ)
     [IsProbabilityMeasure (P θ₀).1] [IsProbabilityMeasure (P θ).1]
@@ -508,26 +507,25 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
     (h0 : ∀ (θ₁ θ₂ : ℝ), pdf_support (X 0) (P θ₁).1 μ
       = pdf_support (X 0) (P θ₂).1 μ)
     {s : NNReal}
-    (hfs : ∀ (θ : ℝ), ∀ (a : ℝ), pdf (X 0) ((P θ)) μ a ≤ s)
-    (hfl : ∀ (θ : ℝ), ∀ (a : ℝ), 0 < (pdf (X 0) ((P θ)) μ a).toReal)
-    {S : Set ℝ} {hs1 : S ⊆ (Set.Ioi 0)} {hs2 : Convex ℝ S}
-    {hs3 : ContinuousOn Real.log S} {hs4 : IsClosed S}
+    (hfs : ∀ (θ : ℝ), ∀ (a : ℝ), f (X 0) ((P θ)) μ a ≤ s)
+    (hfl : ∀ (θ : ℝ), ∀ (a : ℝ), 0 < (f (X 0) ((P θ)) μ a).toReal)
+    {S : Set ℝ} {hs1 : S ⊆ (Set.Ioi 0)} {hs2 : Convex ℝ S} {hs3 : IsClosed S}
     (hrv : ∀ (i : ℕ), Measurable (X i))
     (hindep : iIndepFun X ↑(P θ₀))
     (hident : ∀ (i : ℕ), IdentDistrib (X i) (X 0) (P θ₀) (P θ₀))
-    {hs5 : ∀ᵐ (x : Ω) ∂(P θ₀).1, (pdf (X 0) (↑(P θ)) μ (X 0 x)).toReal /
+    {hs4 : ∀ᵐ (x : Ω) ∂(P θ₀).1, (f (X 0) (↑(P θ)) μ (X 0 x)).toReal /
       (pdf (X 0) (↑(P θ₀)) μ (X 0 x)).toReal ∈ S}
-    (hint1 : Integrable (Real.log ∘ fun ω ↦ (pdf (X 0) (↑(P θ)) μ (X 0 ω)).toReal /
+    (hint1 : Integrable (Real.log ∘ fun ω ↦ (f (X 0) (↑(P θ)) μ (X 0 ω)).toReal /
       (pdf (X 0) (↑(P θ₀)) μ (X 0 ω)).toReal) ↑(P θ₀))
-    (hint2 : Integrable (fun ω ↦ (pdf (X 0) (↑(P θ)) μ (X 0 ω)).toReal /
-      (pdf (X 0) (↑(P θ₀)) μ (X 0 ω)).toReal) ↑(P θ₀))
-    (hint0 : Integrable (log_sum_ratio_rv f μ X θ₀ θ 0) (P θ₀).1)
-    (hne_const : ¬ ((fun ω ↦ ((pdf (X 0) (↑(P θ)) μ (X 0 ω)).toReal /
-      (pdf (X 0) (↑(P θ₀)) μ (X 0 ω)).toReal)) =ᶠ[ae (P θ₀).1]
+    (hint2 : Integrable (fun ω ↦ (f (X 0) (↑(P θ)) μ (X 0 ω)).toReal /
+      (f (X 0) (↑(P θ₀)) μ (X 0 ω)).toReal) ↑(P θ₀))
+    (hint0 : Integrable (log_sum_ratio_rv P μ X θ₀ θ 0) (P θ₀).1)
+    (hne_const : ¬ ((fun ω ↦ ((f (X 0) ((P θ)) μ (X 0 ω)).toReal /
+      (f (X 0) ((P θ₀)) μ (X 0 ω)).toReal)) =ᶠ[ae (P θ₀).1]
   Function.const Ω
     (⨍ (x : Ω),
-      (fun ω ↦ ((pdf (X 0) (↑(P θ)) μ (X 0 ω)).toReal /
-      (pdf (X 0) (↑(P θ₀)) μ (X 0 ω)).toReal)) x ∂↑(P θ₀))))
+      (fun ω ↦ ((f (X 0) ((P θ)) μ (X 0 ω)).toReal /
+      (f (X 0) ((P θ₀)) μ (X 0 ω)).toReal)) x ∂(P θ₀))))
     :
     Tendsto (fun n : ℕ => ((P θ₀).1) {ω : Ω |
        Likelihood P X θ₀ n μ ω > Likelihood P X θ n μ ω}) atTop (𝓝 1)
@@ -536,13 +534,14 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
       Measure.rnDeriv_lt_top (Measure.map (X 0) ↑(P θ)) μ
     have htop2 : ∀ᵐ (x : ℝ) ∂μ, pdf (X 0) (↑(P θ₀)) μ x < ⊤ :=
       Measure.rnDeriv_lt_top (Measure.map (X 0) ↑(P θ₀)) μ
+
     simp_rw [fun (n: ℕ)=> fun (ω : Ω) =>
       likelihood_iff_log_sum_ratio μ P θ₀ X n ω θ (hX n ω) h0 hfs hfl]
-    have hident2 : ∀ (i : ℕ), IdentDistrib (log_sum_ratio_rv f μ X θ₀ θ i)
-      (log_sum_ratio_rv f μ X θ₀ θ 0) ↑(P θ₀) ↑(P θ₀) :=by
+    have hident2 : ∀ (i : ℕ), IdentDistrib (log_sum_ratio_rv P μ X θ₀ θ i)
+      (log_sum_ratio_rv P μ X θ₀ θ 0) ↑(P θ₀) ↑(P θ₀) :=by
       exact fun i ↦ IdentDistrib_log_sum_ratio μ P θ₀ θ X hident i
     have hpair :
-      Pairwise (Function.onFun (fun x1 x2 ↦ x1 ⟂ᵢ[↑(P θ₀)] x2) (log_sum_ratio_rv f μ X θ₀ θ)) :=by
+      Pairwise (Function.onFun (fun x1 x2 ↦ x1 ⟂ᵢ[↑(P θ₀)] x2) (log_sum_ratio_rv P μ X θ₀ θ)) :=by
       classical
       intro i j hij
       simp only [Function.onFun]
@@ -554,14 +553,21 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
 
     have hlaw := MeasureTheory.tendstoInMeasure_of_tendsto_ae_of_measurable_edist (μ  := (P θ₀).1)
       (Measurable_edist_log_sum_ratio μ P θ₀ θ X hrv)
-      (ProbabilityTheory.strong_law_ae_real (log_sum_ratio_rv f μ X θ₀ θ) hint0 hpair hident2)
+      (ProbabilityTheory.strong_law_ae_real (log_sum_ratio_rv P μ X θ₀ θ) hint0 hpair hident2)
+
+    have hlog_Ioi : ContinuousOn Real.log (Set.Ioi (0:ℝ)) := by
+      intro x hx
+      -- hx : x ∈ Ioi 0, i.e. 0 < x
+      simpa [ContinuousWithinAt] using
+        (Real.continuousAt_log (by simp only [Set.mem_Ioi] at hx; nlinarith)).continuousWithinAt
     have hJensen := StrictConcaveOn.ae_eq_const_or_lt_map_average (μ:= (P θ₀).1) (f:=
       fun (ω : Ω) => ((pdf (X 0) (P θ).1 μ (X 0 ω)).toReal/ (pdf (X 0) (P θ₀).1 μ (X 0 ω)).toReal))
       (g:= Real.log)
-      (StrictConcaveOn.subset strictConcaveOn_log_Ioi hs1 hs2) hs3 hs4 hs5 hint2 hint1
+      (StrictConcaveOn.subset strictConcaveOn_log_Ioi hs1 hs2)
+        (hlog_Ioi.mono hs1) hs3 hs4 hint2 hint1
 
 
-    generalize hε: ∫ (ω : Ω), log_sum_ratio_rv f μ X θ₀ θ 0 ω ∂↑(P θ₀) = ε at *
+    generalize hε: ∫ (ω : Ω), log_sum_ratio_rv P μ X θ₀ θ 0 ω ∂↑(P θ₀) = ε at *
 
     unfold TendstoInMeasure at hlaw
     have hε_le_0 : 0 < ((- ε).toEReal).toENNReal := by
@@ -611,6 +617,6 @@ theorem likelihood_consistency_sublevel_measure_tendsto_one
         · apply Measurable.div
           · apply Finset.measurable_fun_sum
             intro x hx
-            exact Measurable.comp (Measurable_log_ratio f μ X θ₀ θ) (hrv x)
+            exact Measurable.comp (Measurable_log_ratio P μ X θ₀ θ) (hrv x)
           · exact measurable_const
         · exact measurable_const
