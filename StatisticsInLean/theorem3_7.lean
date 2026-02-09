@@ -42,13 +42,13 @@ noncomputable def log_Likelihood {Ω : Type*} [MeasurableSpace Ω]
 --   simp only [Set.mem_setOf_eq]
 
 
-lemma exists_deriv_eq_zero_of_strict_endpoints
+lemma exists_IsMaxOn_strict_endpoints
     (g : ℝ → ℝ) (θ₀ : ℝ) (a : ℝ≥0∞)
     (ha : 0 < a) (ha_fin : a < ⊤)
     (hcont : ContinuousOn g (Set.Icc (θ₀ - a.toReal) (θ₀ + a.toReal)))
     (h1 : g θ₀ > g (θ₀ + a.toReal))
     (h2 : g θ₀ > g (θ₀ - a.toReal)) :
-    ∃ θ, edist θ θ₀ < a ∧ deriv g θ = 0 := by
+    ∃ θ, edist θ θ₀ < a ∧ (IsMaxOn g (Set.Icc (θ₀ - a.toReal) (θ₀ + a.toReal)) θ) := by
 
   set L : ℝ := θ₀ - a.toReal
   set U : ℝ := θ₀ + a.toReal
@@ -96,21 +96,16 @@ lemma exists_deriv_eq_zero_of_strict_endpoints
   have hθIoo : θ ∈ Set.Ioo L U := by
     exact ⟨lt_of_le_of_ne hθIcc.1 (Ne.symm hθ_ne_L), lt_of_le_of_ne hθIcc.2 hθ_ne_U⟩
 
+  use θ
+  simp only [edist_dist]
+  rw [ENNReal.ofReal_lt_iff_lt_toReal dist_nonneg (LT.lt.ne_top ha_fin)]
 
-  have hed : edist θ θ₀ < a := by
-    simp only [edist_dist]
-    rw [ENNReal.ofReal_lt_iff_lt_toReal dist_nonneg (LT.lt.ne_top ha_fin)]
-    have : |θ - θ₀| < a.toReal := by
-      have h1' : θ₀ - a.toReal < θ := by simpa [L] using hθIoo.1
-      have h2' : θ < θ₀ + a.toReal := by simpa [U] using hθIoo.2
-      have : -a.toReal < θ - θ₀ ∧ θ - θ₀ < a.toReal := by
-        refine ⟨by linarith, by linarith⟩
-      simpa [abs_lt] using this
-    simpa [Real.dist_eq, abs_sub_comm] using this
-
-  exact ⟨θ, hed, IsLocalMax.deriv_eq_zero (IsMaxOn.isLocalMax
-    (fun y hy => hθmax' ⟨le_of_lt hy.1, le_of_lt hy.2⟩)
-    (IsOpen.mem_nhds isOpen_Ioo hθIoo))⟩
+  refine ⟨?_, hθmax'⟩
+  have h1' : θ₀ - a.toReal < θ := by simpa [L] using hθIoo.1
+  have h2' : θ < θ₀ + a.toReal := by simpa [U] using hθIoo.2
+  rw [Real.dist_eq]
+  simp only [abs_lt]
+  refine ⟨by linarith, by linarith⟩
 
 open scoped BigOperators
 open Finset
@@ -364,7 +359,8 @@ theorem exists_consistent_estimator_of_logLikelihood
     Tendsto (fun i =>
       (f θ₀).1 { ω |
         (edist (θ_hat i ω) θ₀ < a) ∧
-        (deriv (fun θ => (log_Likelihood f X θ i μ ω).toReal) (θ_hat i ω) = 0) })
+        (IsMaxOn (fun θ => (log_Likelihood f X θ i μ ω).toReal)
+        (Set.Icc (θ₀ - a.toReal) (θ₀ + a.toReal)) (θ_hat i ω))})
       atTop (𝓝 1) := by
 
   set θU : ℝ := θ₀ + a.toReal
@@ -376,11 +372,11 @@ theorem exists_consistent_estimator_of_logLikelihood
     log_Likelihood f X θ₀ k μ ω > log_Likelihood f X θL k μ ω}
   let A : ℕ → Set Ω := fun k => AU k ∩ AL k
 
-  generalize hP : (f θ₀).1 = P at *
+  set P := (f θ₀).1
   have hAU : Tendsto (fun k => P (AU k)) atTop (𝓝 1) := by
-    simpa [hP, θU, AU] using htendsto θU
+    simpa [P, θU, AU] using htendsto θU
   have hAL : Tendsto (fun k => P (AL k)) atTop (𝓝 1) := by
-    simpa [hP, θL, AL] using htendsto θL
+    simpa [P, θL, AL] using htendsto θL
 
   have hA : Tendsto (fun k => P (A k)) atTop (𝓝 1) := by
     unfold A
@@ -410,11 +406,10 @@ theorem exists_consistent_estimator_of_logLikelihood
       exact hfinite k ω x hx
     exact (ContinuousOn.comp EReal.continuousOn_toReal (hcont k ω)) h'
 
-  refine ⟨
-    (fun k ω =>
+  let θ_hat := (fun k ω =>
       if h : (ω ∈ AU k) ∧ (ω ∈ AL k) then
         Classical.choose
-          (exists_deriv_eq_zero_of_strict_endpoints
+          (exists_IsMaxOn_strict_endpoints
             (g := fun θ => (log_Likelihood f X θ k μ ω).toReal)
             (θ₀ := θ₀) (a := a)
             ha ha_fin
@@ -432,7 +427,6 @@ theorem exists_consistent_estimator_of_logLikelihood
                   (by simpa [AU, θU] using h.1)
               simpa [θU] using this)
             (by
-              -- same endpoint strictness proof as your original (AL side)
               have : (log_Likelihood f X (θ₀ - a.toReal) k μ ω).toReal
                   < (log_Likelihood f X θ₀ k μ ω).toReal := by
                 exact EReal.toReal_lt_toReal
@@ -442,65 +436,22 @@ theorem exists_consistent_estimator_of_logLikelihood
                   (fun a ↦ hfl k θ₀ ω (id (Eq.symm a)))
                   (by simpa [AL, θL] using h.2)
               simpa [θL] using this))
-      else θ₀),
-    ?_⟩
+      else θ₀)
 
-  let T : ℕ → Set Ω := fun k =>
-    {ω : Ω |
-      (edist (if h : (ω ∈ AU k) ∧ (ω ∈ AL k) then
-        Classical.choose
-          (exists_deriv_eq_zero_of_strict_endpoints
-            (g := fun θ => (log_Likelihood f X θ k μ ω).toReal)
-            (θ₀ := θ₀) (a := a)
-            ha ha_fin
-            (by
-              have : ContinuousOn (fun θ => (log_Likelihood f X θ k μ ω).toReal) I := hcontR k ω
-              simpa [I] using this)
-            (by
-              exact EReal.toReal_lt_toReal
-                (fun a_1 ↦ hfl k (θ₀ + a.toReal) ω (id (Eq.symm a_1)))
-                (hfs k (θ₀ + a.toReal) ω) (hfs k θ₀ ω)
-                (fun a ↦ hfl k θ₀ ω (id (Eq.symm a)))
-                (by simpa [AU, θU] using h.1))
-            (by
-              exact EReal.toReal_lt_toReal
-                (fun a_1 ↦ hfl k (θ₀ - a.toReal) ω (id (Eq.symm a_1)))
-                (hfs k (θ₀ - a.toReal) ω) (hfs k θ₀ ω)
-                (fun a ↦ hfl k θ₀ ω (id (Eq.symm a)))
-                (by simpa [AL, θL] using h.2)))
-      else θ₀) θ₀ < a)
-      ∧
-      (deriv (fun θ => (log_Likelihood f X θ k μ ω).toReal)
-        (if h : (ω ∈ AU k) ∧ (ω ∈ AL k) then
-          Classical.choose
-            (exists_deriv_eq_zero_of_strict_endpoints
-              (g := fun θ => (log_Likelihood f X θ k μ ω).toReal)
-              (θ₀ := θ₀) (a := a)
-              ha ha_fin
-              (by
-                have : ContinuousOn (fun θ => (log_Likelihood f X θ k μ ω).toReal) I := hcontR k ω
-                simpa [I] using this)
-              (by
-                exact EReal.toReal_lt_toReal
-                  (fun a_1 ↦ hfl k (θ₀ + a.toReal) ω (id (Eq.symm a_1)))
-                  (hfs k (θ₀ + a.toReal) ω) (hfs k θ₀ ω)
-                  (fun a ↦ hfl k θ₀ ω (id (Eq.symm a)))
-                  (by simpa [AU, θU] using h.1))
-              (by
-                exact EReal.toReal_lt_toReal
-                  (fun a_1 ↦ hfl k (θ₀ - a.toReal) ω (id (Eq.symm a_1)))
-                  (hfs k (θ₀ - a.toReal) ω) (hfs k θ₀ ω)
-                  (fun a ↦ hfl k θ₀ ω (id (Eq.symm a)))
-                  (by simpa [AL, θL] using h.2)))
-        else θ₀) = 0) }
+  use θ_hat
+
+  let T : ℕ → Set Ω := fun i =>
+    {ω | edist (θ_hat i ω) θ₀ < a
+    ∧ IsMaxOn (fun θ ↦ (log_Likelihood f X θ i μ ω).toReal) I (θ_hat i ω)}
 
   have hsubset : ∀ k, A k ⊆ T k := by
     intro k ω hω
-    have h : (ω ∈ AU k) ∧ (ω ∈ AL k) := by simpa [A] using hω
-
-    have hs :=
+    have h : ω ∈ AU k ∧ ω ∈ AL k := by simpa [A] using hω
+    simp only [T, θ_hat, Set.mem_setOf_eq, h]
+    simp only [and_self, ↓reduceDIte]
+    set hs :=
       (Classical.choose_spec
-        (exists_deriv_eq_zero_of_strict_endpoints
+        (exists_IsMaxOn_strict_endpoints
           (g := fun θ => (log_Likelihood f X θ k μ ω).toReal)
           (θ₀ := θ₀) (a := a)
           ha ha_fin
@@ -519,8 +470,8 @@ theorem exists_consistent_estimator_of_logLikelihood
               (hfs k (θ₀ - a.toReal) ω) (hfs k θ₀ ω)
               (fun a ↦ hfl k θ₀ ω (id (Eq.symm a)))
               (by simpa [AL, θL] using h.2))))
-
-    simpa [T, h] using And.intro hs.1 hs.2
+    have h1 := hs.1
+    refine ⟨hs.1, hs.2⟩
 
   have hmono : ∀ k, P (A k) ≤ P (T k) := by
     intro k
@@ -531,7 +482,7 @@ theorem exists_consistent_estimator_of_logLikelihood
       hA (univ_tendsto_one P) (fun k => hmono k)
       (fun k => by simpa using (prob_le_one (μ := P) (s := T k)))
 
-  simpa [hP, T] using this
+  simpa [P, T] using this
 
 
 
