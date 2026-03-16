@@ -1,11 +1,11 @@
 import Mathlib.Probability.IdentDistrib
 import Mathlib.Probability.Independence.Basic
+import Mathlib.Analysis.SpecialFunctions.Log.ENNRealLogExp
 import MLE.Defs
-
-namespace Likelihood
 
 open MeasureTheory
 
+namespace Likelihood
 
 lemma pos_likelihood_lt
     {Ω : Type*} [MeasurableSpace Ω] {ProbFunSet : Set (Measure Ω)}
@@ -228,3 +228,17 @@ lemma integral_sum_ratio_eq_one
   exact integral_toReal hAM htop2
 
 end Likelihood
+
+lemma Measurable_log_Likelihood
+    {Ω : Type*} [MeasurableSpace Ω]
+    {ProbFunSet : Set (Measure Ω)} (f : ℝ → ↑ProbFunSet) (μ : Measure ℝ := by volume_tac)
+    {X : ℕ → Ω → ℝ} (θ₀ : ℝ) (k : ℕ) (hrv : ∀ (i : ℕ), Measurable (X i)) :
+    Measurable
+    (fun ω : Ω => log_Likelihood f X θ₀ k μ ω) := by
+  unfold log_Likelihood
+  apply Finset.measurable_sum Finset.univ
+  intro i hi
+  apply Measurable.ennreal_log
+  apply Measurable.comp
+  · exact MeasureTheory.measurable_pdf (X := X 0) («ℙ» := (f θ₀).1) (μ := μ)
+  · exact hrv ↑i

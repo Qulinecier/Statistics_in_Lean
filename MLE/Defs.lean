@@ -1,4 +1,6 @@
 import Mathlib.Probability.Density
+import Mathlib.Analysis.SpecialFunctions.Log.ENNRealLog
+
 
 universe u_1 u_2
 namespace MeasureTheory
@@ -21,6 +23,12 @@ noncomputable def Likelihood {Ω : Type*} [MeasurableSpace Ω]
     (X : ℕ → Ω → ℝ) (θ : ℝ) (n : ℕ) (μ : Measure ℝ := by volume_tac) : Ω → ENNReal :=
   fun ω => ∏ i : Fin n, pdf (X 0) (f θ) μ (X i ω)
 
+/-- `log_Likelihood f X θ n μ` is the **log-likelihood function** for the first `n`
+observations of the sample sequence `X`. -/
+noncomputable def log_Likelihood {Ω : Type*} [MeasurableSpace Ω]
+    {ProbFunSet : Set (Measure Ω)} (f : ℝ → ProbFunSet)
+    (X : ℕ → Ω → ℝ) (θ : ℝ) (n : ℕ) (μ : Measure ℝ := by volume_tac) : Ω → EReal :=
+  fun ω => ∑ (i : Fin n), ENNReal.log (pdf (X 0) (f θ) μ (X i ω))
 
 namespace Likelihood
 /-- the sequence of real-valued random variables
@@ -32,4 +40,5 @@ noncomputable abbrev log_sum_ratio_rv {Ω : Type*} [MeasurableSpace Ω]
   (X : ℕ → Ω → ℝ) (θ₀ θ : ℝ) : ℕ → Ω → ℝ :=
   fun i => fun (ω : Ω) =>
     Real.log ((pdf (X 0) (f θ).1 μ (X i ω)).toReal/ (pdf (X 0) (f θ₀).1 μ (X i ω)).toReal)
+
 end Likelihood
