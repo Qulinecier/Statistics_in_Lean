@@ -1,7 +1,7 @@
-name = "Statistics_in_Lean"
+name = "MLE"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["StatisticsInLean"]
+defaultTargets = ["MLE"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -20,4 +20,4 @@ git = "https://github.com/Qulinecier/CLT.git"
 rev = "master"
 
 [[lean_lib]]
-name = "StatisticsInLean"
+name = "MLE"

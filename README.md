@@ -1,4 +1,4 @@
-# Statistics_in_Lean
+# MLE
 
 ## GitHub configuration
 
